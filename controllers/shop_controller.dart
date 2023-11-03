@@ -32,4 +32,26 @@ class ShopController {
     }
     return completer.future;
   }
+
+  Future<List<Book>> handleListBook(String shopname) async {
+    final completer = Completer<List<Book>>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    try {
+      final bookDb =
+          await _shopRepository.queryBookList(shopname) as List<Book>;
+      completer.complete(bookDb);
+      return completer.future;
+    } catch (e) {
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
 }

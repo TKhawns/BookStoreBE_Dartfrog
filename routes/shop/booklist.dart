@@ -7,7 +7,6 @@ import 'package:dart_frog/dart_frog.dart';
 import '../../constant/constant.dart';
 import '../../controllers/shop_controller.dart';
 import '../../exception/record_not_found.dart';
-import '../../model/book.dart';
 import '../../model/response.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -18,11 +17,10 @@ Future<Response> onRequest(RequestContext context) async {
 
   final shopController = context.read<ShopController>();
   final body = await context.request.json();
-  final bookReg = Book(
-    shopName: body['shopname'].toString(),
-  );
+  final shopName = body['shopname'].toString();
+
   try {
-    final bookDb = await shopController.handleShopList(bookReg);
+    final bookDb = await shopController.handleListBook(shopName);
     return AppResponse().ok(HttpStatus.ok, bookDb);
   } catch (e) {
     var statusCode = HttpStatus.internalServerError;

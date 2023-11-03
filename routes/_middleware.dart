@@ -114,7 +114,8 @@ Handler verifyJwt(Handler handler) {
           context.request.url.toString().startsWith('shop/info') ||
           context.request.url.toString().startsWith('order/update') ||
           context.request.url.toString().startsWith('order/delete') ||
-          context.request.url.toString().startsWith('home/search')) {
+          context.request.url.toString().startsWith('home/search') ||
+          context.request.url.toString().startsWith('shop/booklist')) {
         // Forward the request to the respective handler.
         return await handler(context);
       }
