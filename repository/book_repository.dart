@@ -11,6 +11,7 @@ class IBookRepo {
   Future<int>? saveBook(Book book) {}
   void queryBookList() {}
   void searchBookList(String? title) {}
+  Future<int>? addBook(Book book) {}
 }
 
 class BookRepository implements IBookRepo {
@@ -21,6 +22,41 @@ class BookRepository implements IBookRepo {
   @override
   Future<int> saveBook(Book book) async {
     final completer = Completer<int>();
+    return completer.future;
+  }
+
+  @override
+  Future<int> addBook(Book book) async {
+    final completer = Completer<int>();
+    const query = '''
+          INSERT INTO books (book_id, title, description, image, price, shipcost, shopname, shop_image, authorname, number_books, score, quantity) 
+          VALUES (@book_id, @title, @description, @image, @price, @shipcost, @shopname, @shop_image, @authorname, @number_books, @score, @quantity)
+        ''';
+    final params = {
+      'book_id': book.book_id,
+      'title': book.title,
+      'description': book.description,
+      'image': book.image,
+      'price': book.price,
+      'shipcost': book.shipcost,
+      'shopname': book.shopName,
+      'shop_image': book.shop_image,
+      'authorname': book.authorName,
+      'score': book.score,
+      'number_books': book.number_books,
+      'quantity': book.quantity,
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.affectedRowCount == 0) {
+      completer.completeError(ExSql.insertRecordFailed);
+    }
+
+    _logger.debugSql(query, params, message: '{$result.affectedRowCount}');
+
+    completer.complete(result.affectedRowCount);
     return completer.future;
   }
 

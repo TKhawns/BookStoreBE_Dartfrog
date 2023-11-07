@@ -32,6 +32,26 @@ class BookController {
     return completer.future;
   }
 
+  Future<Book> handleAddBook(Book book) async {
+    final completer = Completer<Book>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    // o day, dang set api tra ve phan tu dau tien trong list order de xac thuc duoc la call api thanh cong
+    final result = await _bookRepository.addBook(book);
+    if (result > 0) {
+      final userDb = await _bookRepository.queryBookList();
+      completer.complete(userDb[0]);
+    }
+    return completer.future;
+  }
+
   Future<List<Book>> handleSearchBook(String? title) async {
     final completer = Completer<List<Book>>();
     final errMsgList = <String>[];
