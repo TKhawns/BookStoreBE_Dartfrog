@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_cast
+// ignore_for_file: unnecessary_cast, lines_longer_than_80_chars
 
 import 'dart:async';
 import '../exception/general_exp.dart';

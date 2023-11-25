@@ -8,11 +8,15 @@ import '../log/log.dart';
 import '../model/book.dart';
 
 class IOrderRepo {
-  Future<int>? addBook(Book book) {}
-  Future<int>? updateOrder(String? quantity, String? order_id) {}
-  Future<int>? deleteOrder(String? order_id) {}
-  void queryBookList() {}
-  void countOrder() {}
+  Future<int>? addBook(Book book, String customerId) {}
+  Future<int>? updateOrder(
+    String? quantity,
+    String? order_id,
+    String? customerId,
+  ) {}
+  Future<int>? deleteOrder(String? order_id, String? customerId) {}
+  void queryBookList(String customerId) {}
+  void countOrder(String id) {}
 }
 
 class OrderRepository implements IOrderRepo {
@@ -21,11 +25,13 @@ class OrderRepository implements IOrderRepo {
   final AppLogger _logger;
 
   @override
-  Future<int> addBook(Book book) async {
+  Future<int> addBook(Book book, String customerId) async {
     final completer = Completer<int>();
     const query = '''
-          INSERT INTO orders (order_id, title, description, image, price, shipcost, shopname, shop_image, authorname, number_books, score, quantity) 
-          VALUES (@order_id, @title, @description, @image, @price, @shipcost, @shopname, @shop_image, @authorname, @number_books, @score, @quantity)
+          INSERT INTO orders(order_id, title, description, image, price, shipcost, shopname, shop_image, authorname, number_books, score, quantity, customer_id, status)
+          SELECT @order_id, @title, @description, @image, @price, @shipcost, @shopname, @shop_image, @authorname, @number_books, @score, @quantity, @customer_id, @status
+          FROM orders
+          WHERE NOT EXISTS (SELECT order_id, title, description, image, price, shipcost, shopname, shop_image, authorname, number_books, score, quantity, customer_id, status FROM orders WHERE customer_id = @customer_id AND title = @title AND status != 'payment') LIMIT 1;
         ''';
     final params = {
       'order_id': book.book_id,
@@ -40,6 +46,8 @@ class OrderRepository implements IOrderRepo {
       'score': book.score,
       'number_books': book.number_books,
       'quantity': book.quantity,
+      'customer_id': customerId,
+      'status': 'order',
     };
     final result = await _db.executor.query(
       query,
@@ -55,14 +63,63 @@ class OrderRepository implements IOrderRepo {
     return completer.future;
   }
 
-  Future<int> updateOrder(String? quantity, String? order_id) async {
+  Future<int> updateOrder(
+    String? quantity,
+    String? order_id,
+    String? customerId,
+  ) async {
     final completer = Completer<int>();
     const query = '''
-          UPDATE orders SET quantity = @quantity WHERE order_id = @order_id;
+          UPDATE orders SET quantity = @quantity WHERE order_id = @order_id AND customer_id = @customer_id;
         ''';
     final params = {
       'quantity': quantity,
       'order_id': order_id,
+      'customer_id': customerId,
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.affectedRowCount == 0) {
+      completer.completeError(ExSql.insertRecordFailed);
+    }
+
+    _logger.debugSql(query, params, message: '{$result.affectedRowCount}');
+
+    completer.complete(result.affectedRowCount);
+    return completer.future;
+  }
+
+  Future<int> confirmOrder() async {
+    final completer = Completer<int>();
+    const query = '''
+          UPDATE orders SET status = @status WHERE status = 'payment';
+        ''';
+    final params = {
+      'status': 'confirm',
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.affectedRowCount == 0) {
+      completer.completeError(ExSql.insertRecordFailed);
+    }
+
+    _logger.debugSql(query, params, message: '{$result.affectedRowCount}');
+
+    completer.complete(result.affectedRowCount);
+    return completer.future;
+  }
+
+  Future<int> setPaymentStatus(String customerId) async {
+    final completer = Completer<int>();
+    const query = '''
+          UPDATE orders SET status = 'payment' WHERE customer_id = @customer_id;
+        ''';
+    final params = {
+      'customer_id': customerId,
     };
     final result = await _db.executor.query(
       query,
@@ -79,10 +136,13 @@ class OrderRepository implements IOrderRepo {
   }
 
   @override
-  Future<List<Book>> queryBookList() async {
+  Future<List<Book>> queryBookList(String customerId) async {
     final completer = Completer<List<Book>>();
-    const query = 'SELECT * FROM orders ORDER BY order_id ASC;';
-    final result = await _db.executor.query(query);
+    const query =
+        'SELECT * FROM orders WHERE customer_id = @id  AND status = @status ORDER BY order_id ASC;';
+    final params = {'id': customerId, 'status': 'order'};
+
+    final result = await _db.executor.query(query, substitutionValues: params);
     if (result.isEmpty) {
       _logger.debugSql(
         query,
@@ -118,10 +178,18 @@ class OrderRepository implements IOrderRepo {
   }
 
   @override
-  Future<dynamic> countOrder() async {
+  Future<dynamic> countOrder(String id) async {
     final completer = Completer<dynamic>();
-    const query = 'SELECT COUNT(order_id) as total FROM orders;';
-    final result = await _db.executor.query(query);
+    const query =
+        'SELECT COUNT(order_id) as total FROM orders WHERE customer_id = @id AND status = @status;';
+    final params = {
+      'id': id,
+      'status': 'order',
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
     if (result.isEmpty) {
       _logger.debugSql(
         query,
@@ -137,13 +205,14 @@ class OrderRepository implements IOrderRepo {
     return completer.future;
   }
 
-  Future<int> deleteOrder(String? order_id) async {
+  Future<int> deleteOrder(String? order_id, String? customerId) async {
     final completer = Completer<int>();
     const query = '''
-          DELETE FROM orders WHERE order_id = @order_id;
+          DELETE FROM orders WHERE order_id = @order_id AND customer_id = @customer_id;
         ''';
     final params = {
       'order_id': order_id,
+      'customer_id': customerId,
     };
     final result = await _db.executor.query(
       query,

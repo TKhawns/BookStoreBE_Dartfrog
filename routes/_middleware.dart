@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import '../controllers/author_controller.dart';
 import '../controllers/book_controller.dart';
+import '../controllers/message_controller.dart';
 import '../controllers/order_controller.dart';
 import '../controllers/shop_controller.dart';
 import '../controllers/user_controller.dart';
@@ -14,6 +15,7 @@ import '../model/response.dart';
 import '../model/user.dart';
 import '../repository/author_repository.dart';
 import '../repository/book_repository.dart';
+import '../repository/message_repository.dart';
 import '../repository/order_repository.dart';
 import '../repository/shop_repository.dart';
 import '../repository/user_repository.dart';
@@ -27,7 +29,8 @@ Handler middleware(Handler handler) {
       .use(bookListMiddleware())
       .use(authorListMiddleware())
       .use(orderListMiddleware())
-      .use(shopListMidderware());
+      .use(shopListMidderware())
+      .use(messageListMiddleware());
 }
 
 Middleware injectionController() {
@@ -52,6 +55,20 @@ Middleware bookListMiddleware() {
           final logger = context.read<AppLogger>();
           final db = context.read<Database>();
           return BookController(BookRepository(db, logger), logger);
+        },
+      ),
+    );
+  };
+}
+
+Middleware messageListMiddleware() {
+  return (handler) {
+    return handler.use(
+      provider<MessageController>(
+        (context) {
+          final logger = context.read<AppLogger>();
+          final db = context.read<Database>();
+          return MessageController(MessageRepository(db, logger), logger);
         },
       ),
     );
@@ -115,7 +132,10 @@ Handler verifyJwt(Handler handler) {
           context.request.url.toString().startsWith('order/update') ||
           context.request.url.toString().startsWith('order/delete') ||
           context.request.url.toString().startsWith('home/search') ||
-          context.request.url.toString().startsWith('shop/booklist')) {
+          context.request.url.toString().startsWith('shop/booklist') ||
+          context.request.url.toString().startsWith('user/info') ||
+          context.request.url.toString().startsWith('chat/message') ||
+          context.request.url.toString().startsWith('order/payment_status')) {
         // Forward the request to the respective handler.
         return await handler(context);
       }

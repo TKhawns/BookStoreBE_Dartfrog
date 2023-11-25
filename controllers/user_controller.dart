@@ -75,6 +75,27 @@ class UserController {
     return completer.future;
   }
 
+  Future<User> getUserInfo(String? customerId) async {
+    final completer = Completer<User>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    try {
+      final userDb = await _userRepository.getUserInfo(customerId);
+      completer.complete(userDb);
+      return completer.future;
+    } catch (e) {
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
+
   Future<User> handleFindUserByID(String? id) {
     final completer = Completer<User>();
     if (isNullOrEmpty(id)) {

@@ -21,9 +21,10 @@ Future<Response> onRequest(RequestContext context) async {
   final orderReq = Book(
     book_id: body['order_id'].toString(),
   );
+  final customerId = body['customerId'].toString();
 
   try {
-    final order = await orderController.handleDeleteOrder(orderReq);
+    final order = await orderController.handleDeleteOrder(orderReq, customerId);
     return AppResponse().ok(HttpStatus.ok, order);
   } catch (e) {
     return AppResponse().error(HttpStatus.internalServerError, e.toString());

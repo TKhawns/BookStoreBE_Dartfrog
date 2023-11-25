@@ -13,6 +13,7 @@ class IUserRepo {
   Future<int>? saveUser(User user) {}
   void findUserByEmail(String? phone, {bool? showPass}) {}
   void findUserByID(String? phone, {bool? showPass}) {}
+  Future<User>? getUserInfo(String? customerId) {}
 }
 
 class UserRepository implements IUserRepo {
@@ -26,15 +27,18 @@ class UserRepository implements IUserRepo {
 
     final completer = Completer<int>();
     const query = '''
-          INSERT INTO users (id, full_name, email, password, role) 
-          VALUES (@id, @full_name, @email, @password, @role)
+          INSERT INTO users (id, full_name, email, password, role, avatar, address) 
+          VALUES (@id, @full_name, @email, @password, @role, @avatar, @address)
         ''';
     final params = {
       'id': user.id,
       'full_name': user.fullName,
       'email': user.phone,
       'password': user.password,
-      'role': Role.member.name
+      'role': Role.member.name,
+      'avatar':
+          'https://i.pinimg.com/236x/f7/73/8d/f7738dbb19d719f32ab30aec55cb0cb1.jpg',
+      'address': 'Ha Noi',
     };
     final result = await _db.executor.query(
       query,
@@ -76,6 +80,8 @@ class UserRepository implements IUserRepo {
         phone: firstRow['email'].toString(),
         role: firstRow['role'].toString(),
         password: showPass! ? firstRow['password'].toString() : null,
+        avatar: firstRow['avatar'].toString(),
+        address: firstRow['address'].toString(),
       ),
     );
     _logger.debugSql(query, params, result: firstRow);
@@ -109,6 +115,47 @@ class UserRepository implements IUserRepo {
         phone: firstRow['email'].toString(),
         role: firstRow['role'].toString(),
         password: showPass! ? firstRow['password'].toString() : null,
+        avatar: firstRow['avatar'].toString(),
+        address: firstRow['address'].toString(),
+      ),
+    );
+    _logger.debugSql(query, params, result: firstRow);
+
+    return completer.future;
+  }
+
+  @override
+  Future<User> getUserInfo(String? customerId) async {
+    final completer = Completer<User>();
+    const query = '''
+          SELECT * FROM users WHERE id = @customer_id ;
+        ''';
+    final params = {
+      'customer_id': customerId,
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.isEmpty) {
+      _logger.debugSql(
+        query,
+        params,
+        message: ExSql.statusRecordNotFound.toString(),
+      );
+      completer.completeError(ExSql.statusRecordNotFound);
+      return completer.future;
+    }
+
+    final firstRow = result.first.toColumnMap();
+    completer.complete(
+      User(
+        id: firstRow['id'].toString(),
+        fullName: firstRow['full_name'].toString(),
+        phone: firstRow['email'].toString(),
+        role: firstRow['role'].toString(),
+        avatar: firstRow['avatar'].toString(),
+        address: firstRow['address'].toString(),
       ),
     );
     _logger.debugSql(query, params, result: firstRow);
