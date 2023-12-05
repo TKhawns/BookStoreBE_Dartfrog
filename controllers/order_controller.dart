@@ -155,4 +155,25 @@ class OrderController {
     }
     return completer.future;
   }
+
+  Future<dynamic> getDataDash(String id) async {
+    final completer = Completer<dynamic>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    try {
+      final countDb = await _orderRepository.getDataDash(id);
+      completer.complete(countDb);
+      return completer.future;
+    } catch (e) {
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
 }

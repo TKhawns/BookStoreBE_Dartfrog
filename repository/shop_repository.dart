@@ -21,7 +21,7 @@ class ShopRepository implements IShopRepo {
   @override
   Future<Shop> queryShopInfo(Book book) async {
     final completer = Completer<Shop>();
-    const query = 'SELECT * FROM shop WHERE shop.name = @shopname';
+    const query = 'SELECT * FROM users WHERE users.full_name = @shopname';
     final params = {
       'shopname': book.shopName,
     };
@@ -39,8 +39,8 @@ class ShopRepository implements IShopRepo {
       final firstRow = result.first.toColumnMap();
       completer.complete(
         Shop(
-          name: firstRow['name'].toString(),
-          image: firstRow['image'].toString(),
+          name: firstRow['full_name'].toString(),
+          image: firstRow['avatar'].toString(),
           number_books: firstRow['number_books'].toString(),
           address: firstRow['address'].toString(),
         ),

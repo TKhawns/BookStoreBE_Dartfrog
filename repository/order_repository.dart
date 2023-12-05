@@ -6,6 +6,7 @@ import '../constant/constant.dart';
 import '../database/postgres.dart';
 import '../log/log.dart';
 import '../model/book.dart';
+import '../model/dash_data.dart';
 
 class IOrderRepo {
   Future<int>? addBook(Book book, String customerId) {}
@@ -17,6 +18,7 @@ class IOrderRepo {
   Future<int>? deleteOrder(String? order_id, String? customerId) {}
   void queryBookList(String customerId) {}
   void countOrder(String id) {}
+  void getDataDash(String id) {}
 }
 
 class OrderRepository implements IOrderRepo {
@@ -201,6 +203,41 @@ class OrderRepository implements IOrderRepo {
     } else {
       final total = result[0];
       completer.complete(total[0]);
+    }
+    return completer.future;
+  }
+
+  @override
+  Future<DashBoardData> getDataDash(String id) async {
+    final completer = Completer<DashBoardData>();
+    const query =
+        'select u.full_name as shop_name, COUNT(order_id) as total_order, COUNT(order_id) as new_order from orders JOIN users u ON u.id = @id and u.full_name = orders.shopname where status = @status GROUP BY shop_name;';
+    final params = {
+      'id': id,
+      'status': 'payment',
+      'role': 'shop',
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.isEmpty) {
+      _logger.debugSql(
+        query,
+        "no result",
+        message: ExSql.statusRecordNotFound.toString(),
+      );
+      completer.completeError(ExSql.statusRecordNotFound);
+      return completer.future;
+    } else {
+      final row = result[0].toColumnMap();
+      completer.complete(
+        DashBoardData(
+          shop_name: row['shop_name'].toString(),
+          total_order: row['total_order'].toString(),
+          new_order: row['new_order'].toString(),
+        ),
+      );
     }
     return completer.future;
   }
