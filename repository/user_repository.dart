@@ -14,6 +14,7 @@ class IUserRepo {
   void findUserByEmail(String? phone, {bool? showPass}) {}
   void findUserByID(String? phone, {bool? showPass}) {}
   Future<User>? getUserInfo(String? customerId) {}
+  void getUserChat(String customerId) {}
 }
 
 class UserRepository implements IUserRepo {
@@ -159,6 +160,48 @@ class UserRepository implements IUserRepo {
       ),
     );
     _logger.debugSql(query, params, result: firstRow);
+
+    return completer.future;
+  }
+
+  @override
+  Future<List<User>> getUserChat(String? customerId) async {
+    final completer = Completer<List<User>>();
+    const query = '''
+           SELECT DISTINCT m.user_id as user_id, u.full_name as full_name, u.avatar as avatar, u.role as role, u.email as email, u.address as address FROM messages m JOIN users u ON u.id = m.user_id WHERE m.chatwith = (SELECT u.full_name FROM users u where u.id = @customer_id);
+        ''';
+    final params = {
+      'customer_id': customerId,
+    };
+    final result = await _db.executor.query(
+      query,
+      substitutionValues: params,
+    );
+    if (result.isEmpty) {
+      _logger.debugSql(
+        query,
+        params,
+        message: ExSql.statusRecordNotFound.toString(),
+      );
+      completer.completeError(ExSql.statusRecordNotFound);
+      return completer.future;
+    }
+
+    //final firstRow = result.first.toColumnMap();
+    final users = <User>[];
+    for (var i = 0; i < result.length; i++) {
+      final firstRow = result[i].toColumnMap();
+      users.add(User(
+        id: firstRow['user_id'].toString(),
+        fullName: firstRow['full_name'].toString(),
+        phone: firstRow['email'].toString(),
+        role: firstRow['role'].toString(),
+        avatar: firstRow['avatar'].toString(),
+        address: firstRow['address'].toString(),
+      ));
+    }
+    completer.complete(users);
+    //_logger.debugSql(query, params, result: firstRow);
 
     return completer.future;
   }

@@ -4,6 +4,7 @@ import 'dart:async';
 import '../exception/general_exp.dart';
 import '../log/log.dart';
 import '../model/book.dart';
+import '../model/order_data.dart';
 import '../repository/order_repository.dart';
 
 class OrderController {
@@ -127,6 +128,28 @@ class OrderController {
     try {
       final orderDb =
           await _orderRepository.queryBookList(customerId) as List<Book>;
+      completer.complete(orderDb);
+      return completer.future;
+    } catch (e) {
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
+
+  Future<List<OrderData>> handleOrderList(String shopName) async {
+    final completer = Completer<List<OrderData>>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    try {
+      final orderDb =
+          await _orderRepository.queryOrderList(shopName) as List<OrderData>;
       completer.complete(orderDb);
       return completer.future;
     } catch (e) {

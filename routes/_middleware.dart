@@ -136,7 +136,9 @@ Handler verifyJwt(Handler handler) {
           context.request.url.toString().startsWith('user/info') ||
           context.request.url.toString().startsWith('chat/message') ||
           context.request.url.toString().startsWith('order/payment_status') ||
-          context.request.url.toString().startsWith('order/dash')) {
+          context.request.url.toString().startsWith('order/dash') ||
+          context.request.url.toString().startsWith('order/detail') ||
+          context.request.url.toString().startsWith('user/chat')) {
         // Forward the request to the respective handler.
         return await handler(context);
       }

@@ -7,6 +7,7 @@ import '../database/postgres.dart';
 import '../log/log.dart';
 import '../model/book.dart';
 import '../model/dash_data.dart';
+import '../model/order_data.dart';
 
 class IOrderRepo {
   Future<int>? addBook(Book book, String customerId) {}
@@ -17,6 +18,7 @@ class IOrderRepo {
   ) {}
   Future<int>? deleteOrder(String? order_id, String? customerId) {}
   void queryBookList(String customerId) {}
+  void queryOrderList(String shopName) {}
   void countOrder(String id) {}
   void getDataDash(String id) {}
 }
@@ -180,6 +182,41 @@ class OrderRepository implements IOrderRepo {
   }
 
   @override
+  Future<List<OrderData>> queryOrderList(String shopName) async {
+    final completer = Completer<List<OrderData>>();
+    const query =
+        'SELECT o.title as title, o.image as image, o.quantity as count, u.full_name as name, u.address as address FROM orders o JOIN users u ON o.customer_id = u.id WHERE u.role != @role AND status = @status AND shopname = @shopname';
+    final params = {'role': 'shop', 'status': 'confirm', 'shopname': shopName};
+
+    final result = await _db.executor.query(query, substitutionValues: params);
+    if (result.isEmpty) {
+      _logger.debugSql(
+        query,
+        "no result",
+        message: ExSql.statusRecordNotFound.toString(),
+      );
+      completer.completeError(ExSql.statusRecordNotFound);
+      return completer.future;
+    } else {
+      final books = <OrderData>[];
+      for (var i = 0; i < result.length; i++) {
+        final row = result[i].toColumnMap();
+        books.add(
+          OrderData(
+            title: row['title'].toString(),
+            image: row['image'].toString(),
+            count: row['count'].toString(),
+            name: row['name'].toString(),
+            address: row['address'].toString(),
+          ),
+        );
+      }
+      completer.complete(books);
+    }
+    return completer.future;
+  }
+
+  @override
   Future<dynamic> countOrder(String id) async {
     final completer = Completer<dynamic>();
     const query =
@@ -211,10 +248,10 @@ class OrderRepository implements IOrderRepo {
   Future<DashBoardData> getDataDash(String id) async {
     final completer = Completer<DashBoardData>();
     const query =
-        'select u.full_name as shop_name, COUNT(order_id) as total_order, COUNT(order_id) as new_order from orders JOIN users u ON u.id = @id and u.full_name = orders.shopname where status = @status GROUP BY shop_name;';
+        'select u.full_name as shop_name, COUNT(order_id) as total_order, SUM(CAST(price as INT)) as new_order from orders JOIN users u ON u.id = @id and u.full_name = orders.shopname where status = @status GROUP BY shop_name;';
     final params = {
       'id': id,
-      'status': 'payment',
+      'status': 'confirm',
       'role': 'shop',
     };
     final result = await _db.executor.query(

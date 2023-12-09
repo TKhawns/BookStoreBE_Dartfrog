@@ -25,7 +25,9 @@ class MessageRepository implements IMessageRepo {
     final completer = Completer<List<Message>>();
     const query = '''
           SELECT DISTINCT messages.mess_id as mess_id, messages.mess_text as text, messages.status as status, messages.mess_type as type, messages.create_at as create_at, u.id as id, u.full_name as name
-          FROM messages JOIN users u ON messages.user_id = u.id  WHERE (messages.user_id = @id AND messages.chatwith = @shopname) OR u.full_name = @shopname ORDER BY create_at DESC;
+FROM messages 
+JOIN users u ON messages.user_id = u.id  
+WHERE (messages.user_id = @id AND messages.chatwith = @shopname) OR (u.full_name = @shopname AND messages.chatwith = (SELECT full_name from users WHERE users.id = @id)) ORDER BY create_at DESC;
           ''';
     final params = {
       'id': customerId,

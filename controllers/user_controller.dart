@@ -110,6 +110,28 @@ class UserController {
     return completer.future;
   }
 
+  Future<List<User>> handleUserChat(String customerId) async {
+    final completer = Completer<List<User>>();
+    final errMsgList = <String>[];
+
+    if (errMsgList.isNotEmpty) {
+      final errors = errMsgList.join(',');
+      _logger.log.info(errors);
+      completer.completeError(GeneralException(errors));
+      return completer.future;
+    }
+
+    try {
+      final orderDb =
+          await _userRepository.getUserChat(customerId) as List<User>;
+      completer.complete(orderDb);
+      return completer.future;
+    } catch (e) {
+      completer.completeError(e);
+    }
+    return completer.future;
+  }
+
   Future<User> handleRegisterAcc(User user) async {
     final completer = Completer<User>();
     final errMsgList = <String>[];
